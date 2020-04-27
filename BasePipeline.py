@@ -7,7 +7,10 @@ import numpy as np
 from provided_materials.code.data_helper import UnlabeledDataset,LabeledDataset
 from provided_materials.code.helper import collate_fn
 
-class BasePipeline(nn.module):
+import resnet
+
+
+class BasePipeline(nn.Module):
 
     def __init__(self,
                  encoder,
@@ -30,6 +33,12 @@ class BasePipeline(nn.module):
     def supervised_training(self):
         pass
 
+    def encode(self):
+        image_loader=self.get_data_loader(labeled=False,batch_size=16,first_dim='image')
+        sample=iter(image_loader).next()[0]
+        code=self.encoder(sample)
+        print(code[-1].shape)
+
     def train(self):
         self.ssl_training()
         self.supervised_training()
@@ -48,12 +57,10 @@ class BasePipeline(nn.module):
                                               transform=transform,
                                               extra_info=True
                                               )
-            loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2,
-                                                      collate_fn=collate_fn)
         else:
             assert (first_dim is not None)
             scene_index = np.arange(106)
-            dataset = UnlabeledDataset(image_folder=self.image_folder, scene_index=self.unlabeled_scene_index,
+            dataset = UnlabeledDataset(image_folder=self.image_folder, scene_index=scene_index,
                                                   first_dim=first_dim, transform=transform)
         loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
         return loader
@@ -63,4 +70,6 @@ class BasePipeline(nn.module):
 
 
 if __name__=='__main__':
-    base=BasePipeline(None,)
+    encoder=resnet.resnet18_encoder(pretrained=False,output_channels=32)
+    base=BasePipeline(encoder,{},'provided_materials/data','provided_materials/data/annotation.csv',1)
+    base.encode()
