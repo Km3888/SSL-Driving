@@ -45,7 +45,7 @@ def run_w_dataloader():
 
 
 	for target in targets:
-		cur_res = dl_target_tuple_as_yolo_tensor(target)
+		cur_res = dl_target_tuple_as_yolo_tensor(target['bounding_box'])
 		# print(cur_res)
 		if len(target) > 0:
 			# there should at least be some non zero elements of grid
