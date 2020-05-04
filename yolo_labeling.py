@@ -3,9 +3,10 @@ from box_calc import get_iou
 import matplotlib.pyplot as plt 
 import matplotlib.patches as pat
 from collections import namedtuple
-import pandas
+import csv
+import io
 
-# todo - x and y are between 0 and 1?
+# raw data from annotations
 YoloObj = namedtuple('YoloObj', ['x', 'y','height', 'width'])
 
 # if box is not aligned with edges of image, 
@@ -22,25 +23,25 @@ def corners_to_anchor(fl_x,fr_x,bl_x,br_x,fl_y,fr_y,bl_y,br_y):
 
     return YoloObj(x, y, height, width)
 
-def row_to_anchor(row):
-    p = row_to_point(row)
-    return corners_to_anchor(p.fl_x, p.fr_x, p.bl_x, p.br_x, p.fl_y, p.fr_y, p.bl_y, p.br_y)
+# todo not parsing string directly
+def row_to_anchor(row_line):
+    parsed_corners = [float(n) for n in row_line.split(",")[4:12]]
+    return corners_to_anchor(*parsed_corners)
+
 
 def anchor_to_cell_index(anchor, grid_dim, map_dim=80.0):
     map_offset = map_dim/2.0
     # translte coordinates to all positive
     x_grid_index = int((anchor.x + map_offset)/grid_dim)
     y_grid_index = int((anchor.y + map_offset)/grid_dim)
-
     return (x_grid_index, y_grid_index)
-
 
 # assumes locations are wrt -40, 40 for both x and y
 # normalized output between 0 and 1 with UPPER LEFT = 0,0 and BOTTOM_RIGHT = 1,1
 # todo negative vs positive etc
 def in_cell_loc(anchor, grid_dim, map_dim=80.0):
     map_offset = map_dim/2.0
-    (cell_x, cell_y) = anchor_to_cell_index(anchor, n_grid_cells)
+    (cell_x, cell_y) = anchor_to_cell_index(anchor, grid_dim)
 
     residual_x = anchor.x+map_offset - cell_x*grid_dim
     residual_y = anchor.y+map_offset - cell_y*grid_dim
@@ -66,8 +67,8 @@ def annotation_to_yolo_label(sample_lines, n_grid_cells=19):
     output = torch.zeros([n_grid_cells, n_grid_cells, 5])
     yolo_objs = [row_to_anchor(row) for row in sample_lines]
 
-    cell_indices = [anchor_to_cell_index(anchor, n_grid_cells) for anchor in yolo_objs]
-    cell_normalized_locations = [in_cell_loc(anchor, n_grid_cells) for anchor in yolo_objs]
+    cell_indices = [anchor_to_cell_index(anchor, grid_dim) for anchor in yolo_objs]
+    cell_normalized_locations = [in_cell_loc(anchor, grid_dim) for anchor in yolo_objs]
 
     # todo if there are multiple anchors in one grid, print warning
     # signals we need higher resolution grid
@@ -76,8 +77,9 @@ def annotation_to_yolo_label(sample_lines, n_grid_cells=19):
         (cell_x, cell_y) = cell_index
         (local_x, local_y) = in_cell_xy
 
-        grid_dim = 80.0/n_grid_cells
         positive_vector = torch.tensor([1, local_x, local_y, anchor.height/grid_dim, anchor.width/grid_dim])
+#        print("DB positive_vector", positive_vector)
+#        print("DB cellx,celly: ", cell_x, cell_y)
         output[cell_x, cell_y, :] = positive_vector
 
     return output
