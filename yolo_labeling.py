@@ -56,8 +56,9 @@ def in_cell_loc(anchor, grid_dim, map_dim=80.0):
     return (residual_x/grid_dim, residual_y/grid_dim)
 
 # for the objets present in a given sample, 
-# input is a single sample's target tuple, returned by dataloader
-def dl_target_tuple_as_yolo_tensor(sample_dl_target, n_grid_cells=19):
+# input is a single sample's target tuple's 'bounding_box' value,
+# (returned by dataloader)
+def dl_target_tuple_as_yolo_tensor(sample_dl_bboxes, n_grid_cells=19):
     # outputs labels in form consistent with YOLO algorithm
     # (s.t. there is only one anchor point per grid cell)
     # n_grid_cells is per dimension. used for both x and y.
@@ -70,14 +71,13 @@ def dl_target_tuple_as_yolo_tensor(sample_dl_target, n_grid_cells=19):
 
     # initialize label as no objects present
     output = torch.zeros([n_grid_cells, n_grid_cells, 5])
-    if (len(sample_dl_target) == 0):
+    if (len(sample_dl_bboxes) == 0):
         return output
 
     # assumes sample input locations are bounded by -40, 40
     grid_dim = 80.0/n_grid_cells
-    in_sample_bboxes = sample_dl_target['bounding_box']
 
-    yolo_objs = [dl_obj_to_anchor(bbox) for bbox in in_sample_bboxes]
+    yolo_objs = [dl_obj_to_anchor(bbox) for bbox in sample_dl_bboxes]
 
     cell_indices = [anchor_to_cell_index(anchor, grid_dim) for anchor in yolo_objs]
     cell_normalized_locations = [in_cell_loc(anchor, grid_dim) for anchor in yolo_objs]
