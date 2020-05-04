@@ -6,7 +6,7 @@ from collections import namedtuple
 import csv
 import io
 
-# todo - x and y are between 0 and 1?
+# raw data from annotations
 YoloObj = namedtuple('YoloObj', ['x', 'y','height', 'width'])
 
 # if box is not aligned with edges of image, 
@@ -23,19 +23,9 @@ def corners_to_anchor(fl_x,fr_x,bl_x,br_x,fl_y,fr_y,bl_y,br_y):
 
     return YoloObj(x, y, height, width)
 
-# todo this might be slow
-header_list = "scene,sample,action,category,fl_x,fr_x,bl_x,br_x,fl_y,fr_y,bl_y,br_y,category_id,action_id,new_scene".split(',')
-def row_to_dict(row_line):
-    print("DB ROWLINE: ",row_line)
-    return [d for d in csv.DictReader([row_line], fieldnames=header_list)][0]
-
-def row_to_anchor_old(row_line):
-    p = row_to_dict(row_line)
-    return corners_to_anchor(float(p['fl_x']), float(p['fr_x']), float(p['bl_x']), float(p['br_x']), float(p['fl_y']), float(p['fr_y']), float(p['bl_y']), float(p['br_y']))
-
+# todo not parsing string directly
 def row_to_anchor(row_line):
     parsed_corners = [float(n) for n in row_line.split(",")[4:12]]
-#    print("dbparsed_corners", parsed_corners)
     return corners_to_anchor(*parsed_corners)
 
 
@@ -44,10 +34,6 @@ def anchor_to_cell_index(anchor, grid_dim, map_dim=80.0):
     # translte coordinates to all positive
     x_grid_index = int((anchor.x + map_offset)/grid_dim)
     y_grid_index = int((anchor.y + map_offset)/grid_dim)
-
-    print("GGG", grid_dim)
-    print("DB cell indexing: ", anchor.x, anchor.y, grid_dim, x_grid_index, y_grid_index)
-
     return (x_grid_index, y_grid_index)
 
 # assumes locations are wrt -40, 40 for both x and y
@@ -77,7 +63,6 @@ def annotation_to_yolo_label(sample_lines, n_grid_cells=19):
     # assumes sample input locations are bounded by -40, 40
 
     grid_dim = 80.0/n_grid_cells
-    print("DB grid_dim: ", grid_dim)
 
     output = torch.zeros([n_grid_cells, n_grid_cells, 5])
     yolo_objs = [row_to_anchor(row) for row in sample_lines]
@@ -93,8 +78,8 @@ def annotation_to_yolo_label(sample_lines, n_grid_cells=19):
         (local_x, local_y) = in_cell_xy
 
         positive_vector = torch.tensor([1, local_x, local_y, anchor.height/grid_dim, anchor.width/grid_dim])
-        print("DB positive_vector", positive_vector)
-        print("DB cellx,celly: ", cell_x, cell_y)
+#        print("DB positive_vector", positive_vector)
+#        print("DB cellx,celly: ", cell_x, cell_y)
         output[cell_x, cell_y, :] = positive_vector
 
     return output
