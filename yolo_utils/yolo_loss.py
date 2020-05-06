@@ -26,7 +26,7 @@ def yolo_loss_fn(true_label_tensor, predicted_tensor):
 
 	loss = no_obj_loss + yes_obj_loss
 
-	return loss.item()
+	return loss
 
 def test():
 	lab = torch.ones([2,2,5])

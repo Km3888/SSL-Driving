@@ -30,7 +30,7 @@ def test_corner_to_anchor():
 def run_w_dataloader():
 	labeled_scene_index = np.arange(106, 134)
 	dataset = LabeledDataset(image_folder='provided_materials/data',
-							 annotation_file='../provided_materials/data/annotation.csv',
+							 annotation_file='provided_materials/data/annotation.csv',
 							 scene_index=labeled_scene_index,
 							 transform=torchvision.transforms.ToTensor(),
 							 extra_info=True)
