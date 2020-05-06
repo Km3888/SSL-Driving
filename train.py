@@ -1,18 +1,13 @@
-import os
 import torch
 import random
 import matplotlib
 import torchvision
 import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-from seg_trainer import Segment_trainer
-from model import RoadMap, BoundingBox
-from helper import collate_fn, draw_box
-from obj_detector import Object_det_trainer
-from data_helper import UnlabeledDataset, LabeledDataset
+from trainers.seg_trainer import Segment_trainer
+from models.obj_detection_model import RoadMap, BoundingBox
+from provided_materials.code.helper import collate_fn
+from trainers.obj_detector import Object_det_trainer
+from provided_materials.code.data_helper import LabeledDataset
 
 # seeds
 random.seed(0)

@@ -1,11 +1,4 @@
-import torch 
-from box_calc import get_iou
-import matplotlib.pyplot as plt 
-import matplotlib.patches as pat
-from collections import namedtuple
-import csv
-import io
-import pdb
+import torch
 
 # works cited:
 # inspiration and maybe some code from

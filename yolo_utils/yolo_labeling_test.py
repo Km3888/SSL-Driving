@@ -1,7 +1,6 @@
-from yolo_labeling import *
-import test_data
+from yolo_utils.yolo_labeling import *
 import numpy as np
-from provided_materials.code.data_helper import UnlabeledDataset,LabeledDataset
+from provided_materials.code.data_helper import LabeledDataset
 from provided_materials.code.helper import collate_fn
 import torch
 import torchvision
@@ -31,18 +30,16 @@ def test_corner_to_anchor():
 def run_w_dataloader():
 	labeled_scene_index = np.arange(106, 134)
 	dataset = LabeledDataset(image_folder='provided_materials/data',
-	                         annotation_file='provided_materials/data/annotation.csv',
-	                         scene_index=labeled_scene_index,
-	                         transform=torchvision.transforms.ToTensor(),
-	                         extra_info=True)
+							 annotation_file='../provided_materials/data/annotation.csv',
+							 scene_index=labeled_scene_index,
+							 transform=torchvision.transforms.ToTensor(),
+							 extra_info=True)
 	loader = torch.utils.data.DataLoader(dataset,
 	                                     batch_size=4,
 	                                     shuffle=True,
 	                                     num_workers=2,
 	                                     collate_fn=collate_fn)
 	sample, targets, road_image, extra=iter(loader).next()
-	import pdb
-
 
 	for target in targets:
 		cur_res = dl_target_tuple_as_yolo_tensor(target['bounding_box'])

@@ -1,20 +1,17 @@
 import torch.nn as nn
 import torch
-import torch.functional as F
 import torchvision
 import numpy as np
 
 from provided_materials.code.data_helper import UnlabeledDataset,LabeledDataset
-from provided_materials.code.helper import collate_fn
 
-import resnet
+from models import oft_resnet
 
 
 class BasePipeline(nn.Module):
 
     def __init__(self,
                  encoder,
-                 pretext_tasks:dict,
                  image_folder:str,
                  annotation_csv:str,
                  num_validation_scenes:int, #how many scenes we're holding out for validation
@@ -22,7 +19,6 @@ class BasePipeline(nn.Module):
         super(BasePipeline,self).__init__()
 
         self.encoder=encoder
-        self.pretext_tasks=pretext_tasks
         self.num_validation_scenes=num_validation_scenes
         self.image_folder=image_folder
         self.annotation_csv=annotation_csv
@@ -37,7 +33,6 @@ class BasePipeline(nn.Module):
         image_loader=self.get_data_loader(labeled=False,batch_size=16,first_dim='image')
         sample=iter(image_loader).next()[0]
         code=self.encoder(sample)
-        print(code[-1].shape)
 
     def train(self):
         self.ssl_training()
@@ -70,6 +65,6 @@ class BasePipeline(nn.Module):
 
 
 if __name__=='__main__':
-    encoder=resnet.resnet18_encoder(pretrained=False,output_channels=32)
+    encoder= oft_resnet.resnet18_encoder(pretrained=False, output_channels=32)
     base=BasePipeline(encoder,{},'provided_materials/data','provided_materials/data/annotation.csv',1)
     base.encode()
