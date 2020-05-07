@@ -1,7 +1,7 @@
 import torch 
-from box_calc import get_iou
-import matplotlib.pyplot as plt 
-import matplotlib.patches as pat
+from calc.box_calc import get_iou
+import matplotlib.pyplot as plt
+
 
 def calc_offset(pred_boxes, og_boxes):
     og_w = og_boxes[:, 2] - og_boxes[:, 0]

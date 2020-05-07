@@ -1,12 +1,16 @@
-import os
 import torch
-import random
 import torchvision
 import numpy as np
-import pandas as pd
-import torch.nn as nn
 import torch.nn.functional as F
-from anchor_calc import get_og_bboxes, plot_base
+from calc.anchor_calc import get_og_bboxes, plot_base
+from models.resnet_simclr import ResNetSimCLR
+from models.obj_detection_model import DetectionModel
+
+from yolo_utils.yolo_labeling import dl_target_tuple_as_yolo_tensor as get_yolo
+from yolo_utils.yolo_loss import yolo_loss_fn
+
+from provided_materials.code.data_helper import LabeledDataset
+from provided_materials.code.helper import collate_fn
 
 class Object_det_trainer():
     def __init__(self, model, optim, scheduler, epochs, trainloader, valloader, device="cpu", preT=False):
@@ -116,30 +120,27 @@ class Object_det_trainer():
         b_loss = 0
         for i, (sample, target, road_image, extra) in enumerate(self.train_loader):
             samples = torch.stack(sample).to(self.device).double()
-            samples = samples.view(self.batch_size, -1, self.img_ht, self.img_wd).to(self.device).double()
+            samples = samples.view(self.batch_size, 6, -1,self.img_ht, self.img_wd).to(self.device).double()
 
-            target_class, target_box = self.get_targets(target)
-            out_pred, out_bbox = self.model(samples)
-            #print(target_class.size(), out_pred.size())
-            out_bbox = out_bbox.view(self.batch_size, -1, 4)
-            out_pred = out_pred.view(self.batch_size, 9, -1)
-            
-            loss_cls = self.cls_loss(out_pred, target_class)
-            loss_bbox = self.bbox_loss(target_box, target_class, out_bbox)
-            loss = loss_cls + loss_bbox
+
+            target_box = torch.stack([get_yolo(t['bounding_box']) for t in target])
+            out_bbox = self.model(samples)
+
+            out_bbox = out_bbox.view(self.batch_size, -1, 5)
+            target_box = target_box.view(self.batch_size, -1, 5)
+            loss_bbox = yolo_loss_fn(target_box,out_bbox)
+            loss = loss_bbox
             if loss.item() != 0:
                 self.step(loss)
 
-            total_loss += loss_cls.item()
-            b_loss += loss_bbox.item()
+            total_loss += loss.item()
 
             if i % 20  == 0:
                 avg_loss = float(total_loss / (i+1))
-                avg_b_loss = float(b_loss / (i+1))
-                print('Epoch {} | Avg classification loss= {}, BBox loss= {}'.format(epoch, avg_loss, avg_b_loss))
+                print('Epoch {} | Avg classification loss= {}'.format(epoch, avg_loss))
             torch.cuda.empty_cache()
         
-        print('Epoch {} | Train | Cls loss: {} | BBox Loss: {}'.format(epoch, avg_loss, avg_b_loss))
+        print('Epoch {} | Train | Cls loss: {}'.format(epoch, avg_loss))
 
     def val(self, epoch):
         # only classification rn
@@ -163,7 +164,6 @@ class Object_det_trainer():
         torch.save(self.model.state_dict(), 'classif.pth')
 
     def train(self):
-        print('Training...')
         for ep in range(self.epochs):
             self.tr(ep)
             self.val(ep)
@@ -200,3 +200,42 @@ class Object_det_trainer():
 
             self.getHeatMap(target_class[0])
             self.getHeatMap(out_inds)
+
+
+if __name__=='__main__':
+    encoder=ResNetSimCLR('resnet18',128)
+    obj_model=DetectionModel(encoder)
+    num_epochs = 10
+    train_index = np.arange(106, 110)
+    train_dataset = LabeledDataset(image_folder='provided_materials/data',
+                                   annotation_file='provided_materials/data/annotation.csv',
+                                   scene_index=train_index,
+                                   transform=torchvision.transforms.ToTensor(),
+                                   extra_info=True)
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                         batch_size=2,
+                                         shuffle=True,
+                                         num_workers=2,
+                                         collate_fn=collate_fn)
+    val_index = np.arange(125,127)
+    val_dataset = LabeledDataset(image_folder='provided_materials/data',
+                                 annotation_file='provided_materials/data/annotation.csv',
+                                 scene_index=val_index,
+                                 transform=torchvision.transforms.ToTensor(),
+                                 extra_info=True)
+
+    val_loader = torch.utils.data.DataLoader(val_dataset,
+                                         batch_size=2,
+                                         shuffle=True,
+                                         num_workers=2,
+                                         collate_fn=collate_fn)
+    optimizer_obj = torch.optim.SGD(
+        obj_model.parameters(),
+        lr=0.01, momentum=0.9, weight_decay=1e-4)
+    scheduler_obj = torch.optim.lr_scheduler.LambdaLR(
+        optimizer_obj,
+        lr_lambda=lambda x: (1 - x / (len(train_loader) * num_epochs)) ** 0.9)
+
+    obj_trainer = Object_det_trainer(obj_model, optimizer_obj, scheduler_obj, num_epochs, train_loader, val_loader,
+                                     device="cpu")
+    obj_trainer.tr(0)

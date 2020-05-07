@@ -1,11 +1,4 @@
-import torch 
-from box_calc import get_iou
-import matplotlib.pyplot as plt 
-import matplotlib.patches as pat
-from collections import namedtuple
-import csv
-import io
-import pdb
+import torch
 
 # works cited:
 # inspiration and maybe some code from
@@ -33,7 +26,7 @@ def yolo_loss_fn(true_label_tensor, predicted_tensor):
 
 	loss = no_obj_loss + yes_obj_loss
 
-	return loss.item()
+	return loss
 
 def test():
 	lab = torch.ones([2,2,5])
