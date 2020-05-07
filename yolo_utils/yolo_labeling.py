@@ -120,9 +120,6 @@ def yolo_label_to_bbox_format(yolo_tensor, n_grid_cells=19, confidence_thresh=0.
                 tens = torch.tensor([[fl_x,fr_x,bl_x,br_x],[fl_y,fr_y,bl_y,br_y]], dtype=torch.float64)
                 objects_bboxes.append(tens)
 
-#                pdb.set_trace()                
-    
-
     objects_bboxes_tens = torch.stack(objects_bboxes)
 
     return objects_bboxes_tens
