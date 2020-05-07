@@ -1,5 +1,6 @@
 import torch
 from collections import namedtuple
+import pdb
 
 # raw data from annotations
 YoloObj = namedtuple('YoloObj', ['x', 'y','height', 'width'])
@@ -85,12 +86,46 @@ def dl_target_tuple_as_yolo_tensor(sample_dl_bboxes, n_grid_cells=19):
         (local_x, local_y) = in_cell_xy
 
         positive_vector = torch.tensor([1, local_x, local_y, anchor.height/grid_dim, anchor.width/grid_dim])
-#        print("DB positive_vector", positive_vector)
-#        print("DB cellx,celly: ", cell_x, cell_y)
         output[cell_x, cell_y, :] = positive_vector
 
     return output
 
+# todo do non max suppression BEFORE calling this. 
+# GET RID of confidence thresh thing
+def yolo_label_to_bbox_format(yolo_tensor, n_grid_cells=19, confidence_thresh=0.0000001):
+    grid_dim = 80.0/n_grid_cells
+    objects_bboxes = []
+    for cell_row_index, row in enumerate(yolo_tensor):
+        for cell_col_index, cell_contents in enumerate(row):
+            
+            (is_obj_present_confidence, x, y, height, width) = cell_contents
+
+            if (is_obj_present_confidence > confidence_thresh):
+
+
+                x_offset = grid_dim*cell_row_index
+
+                fl_x = x_offset + (grid_dim * (x + width/2)) - 40
+                fr_x = fl_x
+                bl_x = x_offset + (grid_dim * (x - width/2)) - 40
+                br_x = bl_x
+
+                y_offset = grid_dim*cell_col_index
+
+                fl_y = y_offset + (grid_dim * (y + height/2)) - 40
+                bl_y = fl_y
+                fr_y = y_offset + (grid_dim * (y - height/2)) - 40
+                br_y = fr_y
+
+                tens = torch.tensor([[fl_x,fr_x,bl_x,br_x],[fl_y,fr_y,bl_y,br_y]], dtype=torch.float64)
+                objects_bboxes.append(tens)
+
+#                pdb.set_trace()                
+    
+
+    objects_bboxes_tens = torch.stack(objects_bboxes)
+    pdb.set_trace()    
+    return objects_bboxes_tens
 
 
 
