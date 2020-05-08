@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from models.new_model import NewRoad_map #Road_map
+from models.final_model import Road_map #Road_map
 
 # import your model class
 # import ...
@@ -39,7 +39,7 @@ class ModelLoader():
             self.device = "cpu"
         #self.bbox_model = 
         #self.bbox_model.load_state_dict(torch.load('model1.pth', map_location=self.device))
-        self.road_model = NewRoad_map() # or Road_map()
+        self.road_model = Road_map() # or Road_map()
         self.road_model.load_state_dict(torch.load('new_seg_model.pth', map_location=self.device))
         #self.gt_boxes = 
 
