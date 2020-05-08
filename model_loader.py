@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from models.final_model import Road_map #Road_map
 
 # import your model class
 # import ...
@@ -21,8 +22,8 @@ def get_transform():
 
 class ModelLoader():
     # Fill the information for your team
-    team_name = ''
-    team_member = []
+    team_name = 'something'
+    team_member = ["Kelly Marshall", "Daniel Jefferys-White", "Poornima Haridas"]
     contact_email = '@nyu.edu'
 
     def __init__(model_file):
@@ -32,7 +33,15 @@ class ModelLoader():
         #       3. call cuda()
         # self.model = ...
         # 
-        pass
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+        #self.bbox_model = 
+        #self.bbox_model.load_state_dict(torch.load('model1.pth', map_location=self.device))
+        self.road_model = Road_map() # or Road_map()
+        self.road_model.load_state_dict(torch.load('new_seg_model.pth', map_location=self.device))
+        #self.gt_boxes = 
 
     def get_bounding_boxes(samples):
         # samples is a cuda tensor with size [batch_size, 6, 3, 256, 306]
@@ -45,4 +54,6 @@ class ModelLoader():
         # samples is a cuda tensor with size [batch_size, 6, 3, 256, 306]
         # You need to return a cuda tensor with size [batch_size, 800, 800] 
         
-        pass
+        out = self.road_model(samples).squeeze(1)
+        road_mask = torch.argmax(out, dim=1)
+        return road_mask
