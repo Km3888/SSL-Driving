@@ -64,7 +64,7 @@ class ResnetEncoder(nn.Module):
 class NewRoad_map(nn.Module):
 
     def __init__(self):
-        super(NewSegModel, self).__init__()
+        super(NewRoad_map, self).__init__()
         self.encoder = ResnetEncoder(num_layers=18, pretrained=False)
         self.conv1 = nn.Conv2d(512, 32, 1)
         # self.convTr1 = nn.ConvTranspose2d(192, 128, 10)
