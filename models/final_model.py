@@ -16,6 +16,7 @@ class Road_map(nn.Module):
 
     def forward(self, x):
         #print(x.shape)
+        x = x.view(self.batch_size, -1, 256, 306).to(self.device)
         x = self.encoder(x)
         x = self.classifier(x)
         x = F.interpolate(x, size=self.input_shape, mode='bilinear', align_corners=False)
